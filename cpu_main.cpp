@@ -1,4 +1,3 @@
-#include <iostream>
 #include <random>
 #include <climits>
 #include "chip-8.h"
@@ -25,12 +24,12 @@ void Chip_8::decode_and_execute() {
 
     switch (byte0) {
     case 0x0:
-        switch (N) {
-        case 0x0: // Clear screen
-            for (auto& row : display) row.fill(0); 
+        switch (NNN) {
+        case 0x0E0: // Clear screen
+            for (auto& row : display) row.fill(0);
             draw_screen = true;
             break;
-        case 0xE: // Return from a subroutine
+        case 0x0EE: // Return from a subroutine
             pc = stack.top();
             stack.pop();
             break;
@@ -49,23 +48,23 @@ void Chip_8::decode_and_execute() {
     case 0x3: // Skip conditionally
         if (V[X] == NN) pc += 2;
         break;
-        
+
     case 0x4: // Skip conditionally
         if (V[X] != NN) pc += 2;
         break;
-        
+
     case 0x5: // Skip conditionally
         if (V[X] == V[Y]) pc += 2;
         break;
-        
+
     case 0x6: // Set V[X] register to NN
         V[X] = NN;
         break;
-        
+
     case 0x7: // Add NN to V[X] register
         V[X] += NN;
         break;
-        
+
     case 0x9: // Skip conditionally
         if (V[X] != V[Y]) pc += 2;
         break;
@@ -124,8 +123,8 @@ void Chip_8::decode_and_execute() {
             V[0xF] = bit;
             break;
         }
-
         }
+        break;
 
     case 0xA: // Set index register to NNN
         I = NNN;
@@ -162,7 +161,45 @@ void Chip_8::decode_and_execute() {
             }
         }
         draw_screen = true;
+        break;
     }
 
+    case 0xE:
+        switch (NN) {
+        case 0x9E:
+            pc += (keyboard[V[X]]) ? 0 : 2;
+            break;
+
+        case 0xA1:
+            pc += (!keyboard[V[X]]) ? 0 : 2;
+            break;
+        }
+        break;
+
+    case 0xF:
+        switch (NN) {
+        case 0x07:
+            V[X] = delay;
+            break;
+
+        case 0x15:
+            delay = V[X];
+            break;
+
+        case 0x18:
+            sound = V[X];
+            break;
+
+        case 0x1E: {
+            uint32_t res = I + V[X];
+            I += V[X];
+            V[0xF] = res > 0x0FFF;
+            break;
+        }
+
+        case 0x0A:
+            break;
+        }
+        break;
     }
 }

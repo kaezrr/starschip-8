@@ -49,12 +49,12 @@ Chip_8::Chip_8() {
 
 // Load program into memory.
 void Chip_8::load_program(const std::string& path) {
-    std::ifstream prog{ path };
+    std::ifstream prog{ path, std::ios::binary };
     if (!prog) {
         std::cerr << "ERROR: File not found!\n";
         std::exit(1);
     }
-
+    // Calculating ROM size.
     prog.seekg(0, std::ios::end);
     std::size_t rom_size = prog.tellg();
     prog.seekg(0, std::ios::beg);
@@ -63,15 +63,77 @@ void Chip_8::load_program(const std::string& path) {
         std::cerr << "ERROR: File too big!\n";
         std::exit(1);
     }
-
     prog.read(reinterpret_cast<char*>(&memory[RAM_LOCATION]), rom_size);
 }
 
 
-// Pretty self explanatory
-bool Chip_8::get_pixel(size_t x, size_t y) const {
-    if (x < 0 || y < 0 || x >= SCREEN_WIDTH || y >= SCREEN_HEIGHT) return false;
-    return display[y][x];
+// Handling key presses.
+void Chip_8::toggle_key(const SDL_Scancode& sc, bool on) {
+    switch (sc) {
+    case SDL_SCANCODE_1:
+        keyboard[0x1] = on;
+        break;
+
+    case SDL_SCANCODE_2:
+        keyboard[0x2] = on;
+        break;
+
+    case SDL_SCANCODE_3:
+        keyboard[0x3] = on;
+        break;
+
+    case SDL_SCANCODE_4:
+        keyboard[0xC] = on;
+        break;
+
+    case SDL_SCANCODE_Q:
+        keyboard[0x4] = on;
+        break;
+
+    case SDL_SCANCODE_W:
+        keyboard[0x5] = on;
+        break;
+
+    case SDL_SCANCODE_E:
+        keyboard[0x6] = on;
+        break;
+
+    case SDL_SCANCODE_R:
+        keyboard[0xD] = on;
+        break;
+        
+    case SDL_SCANCODE_A:
+        keyboard[0x7] = on;
+        break;
+
+    case SDL_SCANCODE_S:
+        keyboard[0x8] = on;
+        break;
+
+    case SDL_SCANCODE_D:
+        keyboard[0x9] = on;
+        break;
+
+    case SDL_SCANCODE_F:
+        keyboard[0xE] = on;
+        break;
+
+    case SDL_SCANCODE_Z:
+        keyboard[0xA] = on;
+        break;
+
+    case SDL_SCANCODE_X:
+        keyboard[0x0] = on;
+        break;
+
+    case SDL_SCANCODE_C:
+        keyboard[0xB] = on;
+        break;
+
+    case SDL_SCANCODE_V:
+        keyboard[0xF] = on;
+        break;
+    }
 
 }
 
