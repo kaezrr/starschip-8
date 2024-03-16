@@ -87,38 +87,38 @@ void Chip_8::decode_and_execute() {
             V[X] ^= V[Y];
             break;
 
-        case 0x4: {
+        case 0x4: { // Adds V[Y] to V[X], sets carry flag
             uint16_t result = V[X] + V[Y];
             V[X] = static_cast<uint8_t>(result);
             V[0xF] = (result > 0xFF);
             break;
         }
 
-        case 0x5: {
+        case 0x5: { // Substracts V[Y] from V[X], sets carry flag
             uint8_t temp = (V[X] > V[Y]);
             V[X] = V[X] - V[Y];
             V[0xF] = temp;
             break;
         }
 
-        case 0x6: {
-            V[X] = V[Y]; // Make this toggleable in the future
-            uint8_t bit = V[X] & 0x01;
+        case 0x6: { // Set carry flag to the right-most bit and shift V[X] one bit to the right
+            //V[X] = V[Y]; // Make this toggleable in the future
+            bool bit = V[X] & 0x01;
             V[X] >>= 1;
             V[0xF] = bit;
             break;
         }
 
-        case 0x7: {
+        case 0x7: { // Substracts V[X] from V[Y], sets carry flag
             uint8_t temp = (V[Y] > V[X]);
             V[X] = V[Y] - V[X];
             V[0xF] = temp;
             break;
         }
 
-        case 0xE: {
-            V[X] = V[Y]; // Make this toggleable in the future
-            uint8_t bit = V[X] & 0x40;
+        case 0xE: { // Set carry flag to the left-most bit and shift V[X] one bit to the left
+            //V[X] = V[Y]; // Make this toggleable in the future
+            bool bit = V[X] & 0x80;
             V[X] <<= 1;
             V[0xF] = bit;
             break;
@@ -136,7 +136,7 @@ void Chip_8::decode_and_execute() {
         break;
     }
 
-    case 0xC: {
+    case 0xC: { // Generates a random number and binary ANDs it with NN
         auto rand = static_cast<uint8_t>(dist(mt));
         V[X] = rand & NN;
         break;
@@ -164,7 +164,7 @@ void Chip_8::decode_and_execute() {
         break;
     }
 
-    case 0xE:
+    case 0xE: // Skips instructions based on key press
         switch (NN) {
         case 0x9E:
             pc += (keyboard[V[X]]) ? 0 : 2;
@@ -190,14 +190,44 @@ void Chip_8::decode_and_execute() {
             sound = V[X];
             break;
 
-        case 0x1E: {
+        case 0x1E: { // Add V[X] to I, sets carry flag
             uint32_t res = I + V[X];
             I += V[X];
             V[0xF] = res > 0x0FFF;
             break;
         }
 
-        case 0x0A:
+        case 0x0A: { // Stop until a key is pressed, then set V[X] to the key set.
+            bool f = true;
+            for (uint16_t i = 0x0; i <= 0xF; i++) {
+                if (!keyboard[i]) continue;
+                V[X] = static_cast<uint8_t>(i);
+                f = false; break;
+            }
+            pc -= (f) ? 2 : 0;
+            break;
+        }
+
+        case 0x29: // Set I to font character at V[X]
+            I = (V[X] & 0x0F) * 5;
+            break;
+
+        case 0x33: // Binary to Decimal conversions added to successive addresses from I
+            write(I, (V[X] / 100) % 10);
+            write(I + 1, (V[X] / 10) % 10);
+            write(I + 2, V[X] % 10);
+            break;
+
+        case 0x55: // Store V[0] to V[X] registers at successive memory addresses from I 
+            for (uint16_t i = 0; i <= X; ++i) {
+                write(I + i, V[i]);
+            }
+            break;
+
+        case 0x65: // Store successive memory addresses from I at registers V[0] to V[X]
+            for (uint16_t i = 0; i <= X; ++i) {
+                V[i] = read(I + i);
+            }
             break;
         }
         break;

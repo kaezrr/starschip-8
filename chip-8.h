@@ -47,8 +47,9 @@ public:
     void toggle_key(const SDL_Scancode& sc, bool on);
 
     // Debug
-    friend void current_op(Chip_8& chip8);
-    friend void print_registers(Chip_8& chip8);
+    friend void current_op(const Chip_8& chip8);
+    friend void print_registers(const Chip_8& chip8);
+    friend void print_keys(const Chip_8& chip8);
 };
 
 

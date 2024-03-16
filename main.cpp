@@ -6,13 +6,11 @@ constexpr auto PIXEL_SIZE = 10;
 static Chip_8 chip8{};
 
 int main(int, char* []) {
-    SDL_Init(SDL_INIT_AUDIO);
-
     SDL_Window* window = SDL_CreateWindow("Chip-8", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
         PIXEL_SIZE * SCREEN_WIDTH, PIXEL_SIZE * SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
     SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
-    chip8.load_program("ROMs/IBM_Logo.ch8");
+    chip8.load_program("ROMs/spaceracer.ch8");
 
     bool active = true;
     SDL_Event event;
@@ -43,6 +41,7 @@ int main(int, char* []) {
         // CPU runs at 720Hz
         for (int _ = 0; _ < 12; ++_) {
             chip8.fetch();
+            current_op(chip8);
             chip8.decode_and_execute();
         }
 
@@ -62,7 +61,6 @@ int main(int, char* []) {
         }
         SDL_RenderPresent(renderer);
     }
-    print_registers(chip8);
 
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
