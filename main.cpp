@@ -1,27 +1,31 @@
 #include "chip-8.h"
 #include "debug.h"
 
-constexpr auto PIXEL_SIZE = 10;
+static constexpr auto PIXEL_SIZE = 10;
+static int pitch = SCREEN_WIDTH * 4;
+static constexpr uint32_t WHITE = 0xFF'FF'FF'FF;
+static constexpr uint32_t BLACK = 0x00'00'00'FF;
 
 
 static Chip_8 chip8{
     Chip_8::RESET_VF |
     Chip_8::MEM_INCREMENT |
-    Chip_8::DISPLAY_WAIT |
     Chip_8::CLIPPING 
 };
 
 
 int main(int, char*[]) {
-
     SDL_Window* window = SDL_CreateWindow("Chip-8", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-        PIXEL_SIZE * SCREEN_WIDTH, PIXEL_SIZE * SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
+        PIXEL_SIZE * SCREEN_WIDTH, PIXEL_SIZE * SCREEN_HEIGHT, SDL_WINDOW_SHOWN | SDL_WINDOW_INPUT_FOCUS);
     SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+    SDL_Texture* texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888,
+        SDL_TEXTUREACCESS_STREAMING, SCREEN_WIDTH, SCREEN_HEIGHT);
 
     chip8.load_program("roms/games/8ceattourny_d1.ch8");
 
     bool active = true;
-    SDL_Event event;
+    SDL_Event event{};
+    uint32_t* pixels{};
 
     while (active) {
         // Main loop runs at 60Hz
@@ -56,20 +60,24 @@ int main(int, char*[]) {
         // Draw screen if draw flag is set
         if (!chip8.draw_screen) continue;
         chip8.draw_screen = false;
-        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-        SDL_RenderClear(renderer);
-        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
 
-        for (int y = 0; y < SCREEN_HEIGHT; ++y) {
-            for (int x = 0; x < SCREEN_WIDTH; ++x) {
-                if (!chip8.display[y][x]) continue;
-                SDL_Rect rect{ x * PIXEL_SIZE, y * PIXEL_SIZE, PIXEL_SIZE, PIXEL_SIZE };
-                SDL_RenderFillRect(renderer, &rect);
+        void* pix_ptr{ pixels };
+        SDL_LockTexture(texture, nullptr, reinterpret_cast<void**>(&pix_ptr), &pitch);
+        pixels = reinterpret_cast<uint32_t*>(pix_ptr);
+
+        for (const auto& row : chip8.display) {
+            for (const auto& on : row) {
+                *pixels++ = (on)? WHITE : BLACK;
             }
-        }
+        } 
+
+        pixels -= SCREEN_WIDTH * SCREEN_HEIGHT;
+        SDL_UnlockTexture(texture);
+        SDL_RenderCopy(renderer, texture, nullptr, nullptr);
         SDL_RenderPresent(renderer);
     }
 
+    SDL_DestroyTexture(texture);
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();
