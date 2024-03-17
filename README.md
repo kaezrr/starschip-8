@@ -1,11 +1,9 @@
 # CHIP-8 Emulator
 
 ### Future plans:
--Add Audio
-<br>
--Change pixel rendering from using rects to textures
-<br>
--Add SUPERCHIP support
+1. Add Audio
+2. Change pixel rendering from using rects to textures
+3. Add SUPERCHIP support
 
 ### Games showcase:
 #### 8ceattorney
@@ -22,6 +20,7 @@
 
 ### Resources used:
 [Tobias V. Langhoff's wonderful CHIP-8 instruction set guide](https://tobiasvl.github.io/blog/write-a-chip-8-emulator/)
+<br>
 [Timendus' amazing chip8 testing ROMs](https://github.com/Timendus/chip8-test-suite?tab=readme-ov-file#corax-opcode-test)
 
 #### Special Thanks to the wonderful folks over at the EmuDev discord and subreddit.
