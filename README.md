@@ -21,7 +21,7 @@
 ### Resources used:
 [Tobias V. Langhoff's wonderful CHIP-8 instruction set guide](https://tobiasvl.github.io/blog/write-a-chip-8-emulator/)
 <br>
-[Timendus' amazing chip8 testing ROMs](https://github.com/Timendus/chip8-test-suite?tab=readme-ov-file#corax-opcode-test)
+[Timendus' amazing CHIP-8 testing ROMs](https://github.com/Timendus/chip8-test-suite?tab=readme-ov-file#corax-opcode-test)
 
 #### Special Thanks to the wonderful folks over at the EmuDev discord and subreddit.
 
