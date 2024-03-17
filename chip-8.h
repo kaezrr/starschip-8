@@ -1,10 +1,6 @@
 #pragma once
 
-// Remove this flag in the final code.
-#pragma warning(push)
-#pragma warning(disable : 26819)
 #include <SDL.h>
-#pragma warning(pop)
 
 #include<array>
 #include<stack>
@@ -31,13 +27,34 @@ private:
     array<uint8_t, REG_SIZE> V{};
     array<bool, NUM_KEYS> keyboard{};
     array<uint8_t, MEM_SIZE> memory{};
-
+    
 public:
+    enum Flags {
+        RESET_VF = 1,
+        MEM_INCREMENT = 2,
+        DISPLAY_WAIT = 4,
+        CLIPPING = 8,
+        SHIFTING = 16,
+        JUMPING = 32,
+    };
+
+    // Flags:
+    bool vf_reset{};
+    bool mem_incr{};
+    bool disp_wait{};
+    bool clip{};
+    bool shift{};
+    bool jump{};
+
+    uint16_t last_key{};
     bool draw_screen{};
     uint8_t delay{}, sound{};
     array<array<bool, SCREEN_WIDTH>, SCREEN_HEIGHT> display{};
 
-    Chip_8();
+    Chip_8() = delete;
+    Chip_8(const Chip_8&) = delete;
+
+    Chip_8(uint32_t argument);
     uint8_t read(uint16_t at) const;
     void write(uint16_t at, uint8_t data);
 

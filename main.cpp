@@ -3,19 +3,30 @@
 
 constexpr auto PIXEL_SIZE = 10;
 
-static Chip_8 chip8{};
 
-int main(int, char* []) {
+static Chip_8 chip8{
+    Chip_8::RESET_VF |
+    Chip_8::MEM_INCREMENT |
+    Chip_8::DISPLAY_WAIT |
+    Chip_8::CLIPPING 
+};
+
+
+int main(int, char*[]) {
+
     SDL_Window* window = SDL_CreateWindow("Chip-8", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
         PIXEL_SIZE * SCREEN_WIDTH, PIXEL_SIZE * SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
     SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
-    chip8.load_program("ROMs/spaceracer.ch8");
+    chip8.load_program("roms/games/8ceattourny_d1.ch8");
 
     bool active = true;
     SDL_Event event;
 
     while (active) {
+        // Main loop runs at 60Hz
+        SDL_Delay(16);
+
         // Handling input events
         while(SDL_PollEvent(&event)) {
             switch (event.type) {
@@ -31,9 +42,6 @@ int main(int, char* []) {
             }
         }
 
-        // Main loop runs at 60Hz
-        SDL_Delay(16);
-
         // Timers decrease at 60Hz
         chip8.delay -= (chip8.delay > 0);
         chip8.sound -= (chip8.sound > 0);
@@ -41,8 +49,8 @@ int main(int, char* []) {
         // CPU runs at 720Hz
         for (int _ = 0; _ < 12; ++_) {
             chip8.fetch();
-            current_op(chip8);
             chip8.decode_and_execute();
+            if (chip8.disp_wait && chip8.draw_screen) break;
         }
 
         // Draw screen if draw flag is set

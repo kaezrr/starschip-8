@@ -75,16 +75,19 @@ void Chip_8::decode_and_execute() {
             V[X] = V[Y];
             break;
 
-        case 0x1:
+        case 0x1: 
             V[X] |= V[Y];
+            if (vf_reset) V[0xF] = 0;
             break;
 
         case 0x2:
             V[X] &= V[Y];
+            if (vf_reset) V[0xF] = 0;
             break;
 
         case 0x3:
             V[X] ^= V[Y];
+            if (vf_reset) V[0xF] = 0;
             break;
 
         case 0x4: { // Adds V[Y] to V[X], sets carry flag
@@ -95,14 +98,14 @@ void Chip_8::decode_and_execute() {
         }
 
         case 0x5: { // Substracts V[Y] from V[X], sets carry flag
-            uint8_t temp = (V[X] > V[Y]);
+            bool temp = (V[X] >= V[Y]);
             V[X] = V[X] - V[Y];
             V[0xF] = temp;
             break;
         }
 
         case 0x6: { // Set carry flag to the right-most bit and shift V[X] one bit to the right
-            //V[X] = V[Y]; // Make this toggleable in the future
+            if (!shift) V[X] = V[Y];
             bool bit = V[X] & 0x01;
             V[X] >>= 1;
             V[0xF] = bit;
@@ -110,14 +113,14 @@ void Chip_8::decode_and_execute() {
         }
 
         case 0x7: { // Substracts V[X] from V[Y], sets carry flag
-            uint8_t temp = (V[Y] > V[X]);
+            bool temp = (V[Y] >= V[X]);
             V[X] = V[Y] - V[X];
             V[0xF] = temp;
             break;
         }
 
         case 0xE: { // Set carry flag to the left-most bit and shift V[X] one bit to the left
-            //V[X] = V[Y]; // Make this toggleable in the future
+            if (!shift) V[X] = V[Y];
             bool bit = V[X] & 0x80;
             V[X] <<= 1;
             V[0xF] = bit;
@@ -131,8 +134,8 @@ void Chip_8::decode_and_execute() {
         break;
 
     case 0xB: {
-        uint8_t jump = V[X]; // make this toggleable (V[X] / V[0])
-        pc = NNN + jump;
+        uint8_t jmp = (jump)? V[X] : V[0]; // make this toggleable (V[X] / V[0])
+        pc = NNN + jmp;
         break;
     }
 
@@ -147,17 +150,33 @@ void Chip_8::decode_and_execute() {
         uint8_t y_coords = V[Y] % SCREEN_HEIGHT;
         V[0xF] = 0x00; // Set collision flag to false
 
-        for (uint8_t n = 0; n < N; ++n, ++y_coords) {
-            if (y_coords >= SCREEN_HEIGHT) break;
-            auto x = x_coords;
+        if (clip) {
+            for (uint8_t n = 0; n < N; ++n, ++y_coords) {
+                if (y_coords >= SCREEN_HEIGHT) break;
+                auto x = x_coords;
 
-            // Iterate through each bit left to right in sprite data
-            for (uint8_t sp = read(I + n); sp > 0; (sp <<= 1), ++x) {
-                if (x >= SCREEN_WIDTH) break;
-                if (!(sp & 0x80)) continue;
+                // Iterate through each bit left to right in sprite data
+                for (uint8_t sp = read(I + n); sp > 0; (sp <<= 1), ++x) {
+                    if (x >= SCREEN_WIDTH) break;
+                    if (!(sp & 0x80)) continue;
 
-                if (display[y_coords][x]) V[0xF] = 0x01; // set collison flag to true
-                display[y_coords][x] = !display[y_coords][x];
+                    if (display[y_coords][x]) V[0xF] = 0x01; // set collison flag to true
+                    display[y_coords][x] = !display[y_coords][x];
+                }
+            }
+        } else {
+            for (uint8_t n = 0; n < N; ++n, ++y_coords) {
+                y_coords %= SCREEN_HEIGHT;
+                auto x = x_coords;
+
+                // Iterate through each bit left to right in sprite data
+                for (uint8_t sp = read(I + n); sp > 0; (sp <<= 1), ++x) {
+                    x %= SCREEN_WIDTH;
+                    if (!(sp & 0x80)) continue;
+
+                    if (display[y_coords][x]) V[0xF] = 0x01; // set collison flag to true
+                    display[y_coords][x] = !display[y_coords][x];
+                }
             }
         }
         draw_screen = true;
@@ -167,11 +186,11 @@ void Chip_8::decode_and_execute() {
     case 0xE: // Skips instructions based on key press
         switch (NN) {
         case 0x9E:
-            pc += (keyboard[V[X]]) ? 0 : 2;
+            pc += (keyboard[V[X] & 0xF]) ? 2 : 0;
             break;
 
         case 0xA1:
-            pc += (!keyboard[V[X]]) ? 0 : 2;
+            pc += (!keyboard[V[X] & 0xF]) ? 2 : 0;
             break;
         }
         break;
@@ -197,16 +216,18 @@ void Chip_8::decode_and_execute() {
             break;
         }
 
-        case 0x0A: { // Stop until a key is pressed, then set V[X] to the key set.
-            bool f = true;
-            for (uint16_t i = 0x0; i <= 0xF; i++) {
-                if (!keyboard[i]) continue;
-                V[X] = static_cast<uint8_t>(i);
-                f = false; break;
+        case 0x0A: // Stop until a key is pressed and released, then set V[X] to the key set.
+            if (last_key > 0xF) {
+                for (uint16_t i = 0x0; i <= 0xF; ++i) {
+                    if (!keyboard[i]) continue;
+                    last_key = i; break;
+                }
+            } else if(!keyboard[last_key]) {
+                V[X] = static_cast<uint8_t>(last_key);
+                last_key = 0xFF; break;
             }
-            pc -= (f) ? 2 : 0;
+            pc -= 2;
             break;
-        }
 
         case 0x29: // Set I to font character at V[X]
             I = (V[X] & 0x0F) * 5;
@@ -220,13 +241,20 @@ void Chip_8::decode_and_execute() {
 
         case 0x55: // Store V[0] to V[X] registers at successive memory addresses from I 
             for (uint16_t i = 0; i <= X; ++i) {
-                write(I + i, V[i]);
+                if (mem_incr)
+                    write(I++, V[i]); 
+                else
+                    write(I + i, V[i]);
             }
             break;
 
         case 0x65: // Store successive memory addresses from I at registers V[0] to V[X]
             for (uint16_t i = 0; i <= X; ++i) {
-                V[i] = read(I + i);
+                if (mem_incr)
+                    V[i] = read(I++); 
+                else
+                    V[i] = read(I + i);
+
             }
             break;
         }

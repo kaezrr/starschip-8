@@ -36,14 +36,23 @@ void Chip_8::write(uint16_t at, uint8_t data) {
 }
 
 
-// Default constructor.
-Chip_8::Chip_8() {
+Chip_8::Chip_8(uint32_t argument) {
+    // Set Flags
+    vf_reset    = (argument & RESET_VF);
+    mem_incr    = (argument & MEM_INCREMENT);
+    disp_wait   = (argument & DISPLAY_WAIT);
+    clip        = (argument & CLIPPING);
+    shift       = (argument & SHIFTING);
+    jump        = (argument & JUMPING);
+
     // Load font into memory
     for (uint16_t i = 0x00; i < 0x50; ++i) write(i, font[i]); 
 
     // Set program counter to RAM.
     pc = RAM_LOCATION;
     draw_screen = false;
+
+    last_key = 0xFF;
 }
 
 
@@ -134,7 +143,6 @@ void Chip_8::toggle_key(const SDL_Scancode& sc, bool on) {
         keyboard[0xF] = on;
         break;
     }
-
 }
 
 
