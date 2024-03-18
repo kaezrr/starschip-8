@@ -1,5 +1,6 @@
 #include "chip-8.h"
 #include "debug.h"
+#include "audio.h"
 
 static constexpr auto PIXEL_SIZE = 10;
 static int pitch = SCREEN_WIDTH * 4;
@@ -15,17 +16,29 @@ static Chip_8 chip8{
 
 
 int main(int, char*[]) {
+    SDL_Init(SDL_INIT_AUDIO | SDL_INIT_VIDEO);
     SDL_Window* window = SDL_CreateWindow("Chip-8", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
         PIXEL_SIZE * SCREEN_WIDTH, PIXEL_SIZE * SCREEN_HEIGHT, SDL_WINDOW_SHOWN | SDL_WINDOW_INPUT_FOCUS);
     SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
     SDL_Texture* texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888,
         SDL_TEXTUREACCESS_STREAMING, SCREEN_WIDTH, SCREEN_HEIGHT);
 
-    chip8.load_program("roms/games/8ceattourny_d1.ch8");
+    SDL_AudioSpec spec{
+    .freq = SAMPLE_RATE,
+    .format = AUDIO_F32,
+    .channels = 1,
+    .samples = BUFFER_SIZE,
+    .callback = callback
+    };
+
+    SDL_AudioDeviceID audio_device = SDL_OpenAudioDevice(nullptr, 0, &spec, nullptr, 0);
+
+    chip8.load_program("roms/games/br8kout.ch8");
 
     bool active = true;
     SDL_Event event{};
     uint32_t* pixels{};
+
 
     while (active) {
         // Main loop runs at 60Hz
@@ -45,6 +58,8 @@ int main(int, char*[]) {
                 break;
             }
         }
+
+        SDL_PauseAudioDevice(audio_device, (chip8.sound <= 0));
 
         // Timers decrease at 60Hz
         chip8.delay -= (chip8.delay > 0);

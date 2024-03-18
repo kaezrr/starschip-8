@@ -1,7 +1,7 @@
 # CHIP-8 Emulator
 
 ### Future plans:
-1. Add Audio
+1. ~Add Audio~
 2. ~Change pixel rendering from using rects to textures~
 3. Add SUPERCHIP support
 
@@ -23,7 +23,7 @@
 <br>
 [Timendus' amazing CHIP-8 testing ROMs](https://github.com/Timendus/chip8-test-suite?tab=readme-ov-file#corax-opcode-test)
 
-#### Special Thanks to the wonderful folks over at the EmuDev discord and subreddit.
+#### Special thanks to the wonderful folks over at the EmuDev discord and subreddit.
 
 
 

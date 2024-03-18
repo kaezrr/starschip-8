@@ -145,6 +145,7 @@
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="audio.h" />
     <ClInclude Include="chip-8.h" />
     <ClInclude Include="debug.h" />
   </ItemGroup>
