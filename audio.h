@@ -5,7 +5,7 @@ constexpr int BUFFER_SIZE = 512;
 
 constexpr int WAVE_FREQ = 750;
 constexpr int WAVE_AMP = 1;
-constexpr float VOLUME = 0.1f;
+constexpr float VOLUME = 0.025f;
 
 constexpr int FULL_PERIOD = (SAMPLE_RATE / WAVE_FREQ);
 constexpr int HALF_PERIOD = FULL_PERIOD / 2;

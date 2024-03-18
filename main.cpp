@@ -4,8 +4,8 @@
 
 static constexpr auto PIXEL_SIZE = 10;
 static int pitch = SCREEN_WIDTH * 4;
-static constexpr uint32_t WHITE = 0xFF'FF'FF'FF;
-static constexpr uint32_t BLACK = 0x00'00'00'FF;
+static constexpr uint32_t ON_COLOR = 0xCB'87'00'FF;
+static constexpr uint32_t OFF_COLOR = 0x52'1A'00'FF;
 
 
 static Chip_8 chip8{
@@ -82,7 +82,7 @@ int main(int, char*[]) {
 
         for (const auto& row : chip8.display) {
             for (const auto& on : row) {
-                *pixels++ = (on)? WHITE : BLACK;
+                *pixels++ = (on)? ON_COLOR : OFF_COLOR;
             }
         } 
 
