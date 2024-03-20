@@ -3,8 +3,8 @@
 
 #include "chip-8.h"
 
-static array<uint8_t, 80> font =
-    {0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
+static array<uint8_t, 80> font {
+     0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
      0x20, 0x60, 0x20, 0x20, 0x70, // 1
      0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
      0xF0, 0x10, 0xF0, 0x10, 0xF0, // 3
@@ -20,6 +20,25 @@ static array<uint8_t, 80> font =
      0xE0, 0x90, 0x90, 0x90, 0xE0, // D
      0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
      0xF0, 0x80, 0xF0, 0x80, 0x80};// F
+
+
+static array<uint8_t, 160> super_font{
+    0x3C, 0x7E, 0xE7, 0xC3, 0xC3, 0xC3, 0xC3, 0xE7, 0x7E, 0x3C, // 0
+    0x18, 0x78, 0x78, 0x18, 0x18, 0x18, 0x18, 0x18, 0xFF, 0xFF, // 1
+    0x7E, 0xFF, 0xC3, 0x03, 0x07, 0x1E, 0x78, 0xE0, 0xFF, 0xFF, // 2
+    0x7E, 0xFF, 0xC3, 0x03, 0x0E, 0x0E, 0x03, 0xC3, 0xFF, 0x7E, // 3
+    0xC3, 0xC3, 0xC3, 0xC3, 0xFF, 0x7F, 0x03, 0x03, 0x03, 0x03, // 4
+    0xFF, 0xFF, 0xC0, 0xC0, 0xFE, 0x7F, 0x03, 0x03, 0xFF, 0xFE, // 5
+    0x7F, 0xFF, 0xC0, 0xC0, 0xFE, 0xFF, 0xC3, 0xC3, 0xFF, 0x7E, // 6
+    0xFF, 0xFF, 0x03, 0x03, 0x07, 0x0E, 0x1C, 0x18, 0x18, 0x18, // 7 
+    0x7E, 0xFF, 0xC3, 0xC3, 0x7E, 0x7E, 0xC3, 0xC3, 0xFF, 0x7E, // 8
+    0x7E, 0xFF, 0xC3, 0xC3, 0xFF, 0x7F, 0x03, 0x07, 0x7E, 0x7C, // 9
+    0x18, 0x3C, 0x7E, 0xE7, 0xC3, 0xC3, 0xFF, 0xFF, 0xC3, 0xC3, // A
+    0xFE, 0xFF, 0xC3, 0xC3, 0xFE, 0xFE, 0xC3, 0xC3, 0xFF, 0xFE, // B
+    0x3F, 0x7F, 0xE0, 0xC0, 0xC0, 0xC0, 0xC0, 0xE0, 0x7F, 0x3F, // C
+    0xFC, 0xFE, 0xC7, 0xC3, 0xC3, 0xC3, 0xC3, 0xC7, 0xFE, 0xFC, // D
+    0x7F, 0xFF, 0xC0, 0xC0, 0xFF, 0xFF, 0xC0, 0xC0, 0xFF, 0x7F, // E
+    0x7F, 0xFF, 0xC0, 0xC0, 0xFF, 0xFF, 0xC0, 0xC0, 0xC0, 0xC0};// F
 
 
 // Read byte at memory location 'at'. Has OOB check.
@@ -47,12 +66,17 @@ Chip_8::Chip_8(uint32_t argument) {
 
     // Load font into memory
     for (uint16_t i = 0x00; i < 0x50; ++i) write(i, font[i]); 
+    for (uint16_t i = 0x00; i < 0xA0; ++i) write(SUPER_FONT_LOCATION + i, super_font[i]); 
 
     // Set program counter to RAM.
     pc = RAM_LOCATION;
     draw_screen = false;
 
     last_key = 0xFF;
+
+    super = false;
+    active = true;
+    stopped = false;
 }
 
 
@@ -146,3 +170,118 @@ void Chip_8::toggle_key(const SDL_Scancode& sc, bool on) {
 }
 
 
+void Chip_8::load_texture(SDL_Renderer* renderer, SDL_Texture* texture, const vector<vector<bool>>& disp, int height, int width) {
+    int pitch = width * height;
+    uint32_t* pixels{};
+    void* pix_ptr{pixels};
+
+    SDL_LockTexture(texture, nullptr, static_cast<void**>(&pix_ptr), &pitch);
+    pixels = static_cast<uint32_t*>(pix_ptr);
+
+    for (const auto& row : disp) {
+        for (const auto& on : row) {
+            *pixels++ = (on) ? ON_COLOR : OFF_COLOR;
+        }
+    }
+    pixels -= pitch;
+    SDL_UnlockTexture(texture);
+    SDL_RenderCopy(renderer, texture, nullptr, nullptr);
+}
+
+
+void Chip_8::draw_screen_array(vector<vector<bool>>& disp, int height, int width, uint8_t X, uint8_t Y, uint8_t N) {
+    uint8_t x_coords = V[X] % width;
+    uint8_t y_coords = V[Y] % height;
+    V[0xF] = 0x00; // Set collision flag to false
+
+    for (uint8_t n = 0; n < N; ++n, ++y_coords) {
+        if (!clip) y_coords %= height;
+        if (clip && y_coords >= height) break;
+        auto x = x_coords;
+
+        // Iterate through each bit left to right in sprite data
+        for (uint8_t sp = read(I + n); sp > 0; (sp <<= 1), ++x) {
+            if (!clip) x %= width;
+            if (clip && x >= width) break;
+            if (!(sp & 0x80)) continue;
+
+            if (disp[y_coords][x]) V[0xF] = 0x01; // set collison flag to true
+            disp[y_coords][x] = !disp[y_coords][x];
+        }
+    }
+}
+
+
+void Chip_8::scroll_down(vector<vector<bool>>& disp, int height, uint8_t N) {
+    if (!N) return;
+    for (int i = height - 1; i >= 0; --i) {
+        if (i < N) std::fill(disp[i].begin(), disp[i].end(), 0);
+        else disp[i] = disp[i - N];
+    }
+}
+
+
+void Chip_8::scroll_up(vector<vector<bool>>& disp, int height, uint8_t N) {
+    if (!N) return;
+    for (int i = 0; i < height; ++i) {
+        if (i > (height - 1 - N)) std::fill(disp[i].begin(), disp[i].end(), 0);
+        else disp[i] = disp[i + N];
+    }
+}
+
+
+void Chip_8::scroll_left(vector<vector<bool>>& disp, int width) {
+    for (auto& row : disp) {
+        for (int i = 0; i < width; ++i) {
+            if (i > (width - 5)) row[i] = 0;
+            else row[i] = row[i + 4];
+        }
+    }
+}
+
+
+void Chip_8::scroll_right(vector<vector<bool>>& disp, int width) {
+    for (auto& row : disp) {
+        for (int i = width - 1; i >= 0; --i) {
+            if (i < 4) row[i] = 0;
+            else row[i] = row[i - 4];
+        }
+    }
+}
+
+
+void Chip_8::draw_screen_array_sprite(vector<vector<bool>>& disp, int height, int width, uint8_t X, uint8_t Y) {
+    uint8_t x_coords = V[X] % width;
+    uint8_t y_coords = V[Y] % height;
+    V[0xF] = 0x00; // Set collision flag to false
+
+    for (uint16_t n = 0; n < 32; n += 2, ++y_coords) {
+        if (!clip) y_coords %= height;
+        if (clip && y_coords >= height) break;
+
+        uint8_t left_half = read(I + n);
+        uint8_t right_half = read(I + n + 1);
+
+        auto x = x_coords;
+        // Iterate through each bit left to right in left_half data
+        for (uint8_t sp = left_half; sp > 0; (sp <<= 1), ++x) {
+            if (!clip) x %= width;
+            if (clip && x >= width) break;
+            if (!(sp & 0x80)) continue;
+
+            if (disp[y_coords][x]) V[0xF] = 0x01; // set collison flag to true
+            disp[y_coords][x] = !disp[y_coords][x];
+        }
+        
+        x = x_coords + 8;
+        // Iterate through each bit left to right in right_half data
+        for (uint8_t sp = right_half; sp > 0; (sp <<= 1), ++x) {
+            if (!clip) x %= width;
+            if (clip && x >= width) break;
+            if (!(sp & 0x80)) continue;
+
+            if (disp[y_coords][x]) V[0xF] = 0x01; // set collison flag to true
+            disp[y_coords][x] = !disp[y_coords][x];
+        }
+    }
+}

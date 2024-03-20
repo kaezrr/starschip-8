@@ -3,7 +3,8 @@
 ### Future plans:
 1. ~Add Audio~
 2. ~Change pixel rendering from using rects to textures~
-3. Add SUPERCHIP support
+3. ~Add SUPERCHIP support~
+
 
 ### Games showcase:
 #### 8ceattorney

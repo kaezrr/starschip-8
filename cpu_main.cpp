@@ -7,6 +7,8 @@ static std::random_device rd;
 static std::mt19937 mt{ rd() };
 static std::uniform_int_distribution<int> dist{0, INT_MAX};
 
+static array<uint8_t, 16> save_data{};
+
 // Fetch opcode, increment program counter by 2.
 void Chip_8::fetch() {
     opcode = (read(pc) << 8) | read(pc + 1);
@@ -24,14 +26,55 @@ void Chip_8::decode_and_execute() {
 
     switch (byte0) {
     case 0x0:
-        switch (NNN) {
-        case 0x0E0: // Clear screen
-            for (auto& row : display) row.fill(0);
+        switch (NN) {
+        case 0xE0: // Clear screen
+            for (auto& row : display) std::fill(row.begin(), row.end(), 0);
+            for (auto& row : super_display) std::fill(row.begin(), row.end(), 0);
             draw_screen = true;
             break;
-        case 0x0EE: // Return from a subroutine
+
+        case 0xEE: // Return from a subroutine
             pc = stack.top();
             stack.pop();
+            break;
+
+        case 0xFF: // Enable high resolution mode
+            super = true;
+            break;
+
+        case 0xFE: // Enable low resolution mode
+            super = false;
+            break;
+
+        case 0xFB: // Scroll display right by 4 pixels
+            if (super) scroll_right(super_display, SUPER_WIDTH);
+            else scroll_right(display, SCREEN_WIDTH);
+            draw_screen = true;
+            break;
+
+        case 0xFC: // Scroll display left by 4 pixels
+            if (super) scroll_left(super_display, SUPER_WIDTH);
+            else scroll_left(display, SCREEN_WIDTH);
+            draw_screen = true;
+            break;
+
+        case 0xFD: // Exit the interpreter
+            active = false;
+            break;
+
+        case 0x00: // Halt the program 
+            stopped = true;
+            break;
+
+        default: // 00CN Scroll display down by N pixels
+            if (Y == 0xC) {
+                if (super) scroll_down(super_display, SUPER_HEIGHT, N);
+                else scroll_down(display, SCREEN_HEIGHT, N);
+            } else if (Y == 0xD) {
+                if (super) scroll_up(super_display, SUPER_HEIGHT, N);
+                else scroll_up(display, SCREEN_HEIGHT, N);
+            }
+            draw_screen = true;
             break;
         }
         break;
@@ -146,38 +189,12 @@ void Chip_8::decode_and_execute() {
     }
 
     case 0xD: { // Draw sprite on screen
-        uint8_t x_coords = V[X] % SCREEN_WIDTH;
-        uint8_t y_coords = V[Y] % SCREEN_HEIGHT;
-        V[0xF] = 0x00; // Set collision flag to false
-
-        if (clip) {
-            for (uint8_t n = 0; n < N; ++n, ++y_coords) {
-                if (y_coords >= SCREEN_HEIGHT) break;
-                auto x = x_coords;
-
-                // Iterate through each bit left to right in sprite data
-                for (uint8_t sp = read(I + n); sp > 0; (sp <<= 1), ++x) {
-                    if (x >= SCREEN_WIDTH) break;
-                    if (!(sp & 0x80)) continue;
-
-                    if (display[y_coords][x]) V[0xF] = 0x01; // set collison flag to true
-                    display[y_coords][x] = !display[y_coords][x];
-                }
-            }
+        if (super) {
+            if (N == 0) draw_screen_array_sprite(super_display, SUPER_HEIGHT, SUPER_WIDTH, X, Y);
+            else draw_screen_array(super_display, SUPER_HEIGHT, SUPER_WIDTH, X, Y, N);
         } else {
-            for (uint8_t n = 0; n < N; ++n, ++y_coords) {
-                y_coords %= SCREEN_HEIGHT;
-                auto x = x_coords;
-
-                // Iterate through each bit left to right in sprite data
-                for (uint8_t sp = read(I + n); sp > 0; (sp <<= 1), ++x) {
-                    x %= SCREEN_WIDTH;
-                    if (!(sp & 0x80)) continue;
-
-                    if (display[y_coords][x]) V[0xF] = 0x01; // set collison flag to true
-                    display[y_coords][x] = !display[y_coords][x];
-                }
-            }
+            if (N == 0) draw_screen_array_sprite(display, SCREEN_HEIGHT, SCREEN_WIDTH, X, Y);
+            else draw_screen_array(display, SCREEN_HEIGHT, SCREEN_WIDTH, X, Y, N);
         }
         draw_screen = true;
         break;
@@ -206,7 +223,7 @@ void Chip_8::decode_and_execute() {
             break;
 
         case 0x18:
-            sound = V[X];
+            sound = (V[X] == 1)? 2 : V[X];
             break;
 
         case 0x1E: { // Add V[X] to I, sets carry flag
@@ -241,21 +258,30 @@ void Chip_8::decode_and_execute() {
 
         case 0x55: // Store V[0] to V[X] registers at successive memory addresses from I 
             for (uint16_t i = 0; i <= X; ++i) {
-                if (mem_incr)
-                    write(I++, V[i]); 
-                else
-                    write(I + i, V[i]);
+                if (mem_incr) write(I++, V[i]); 
+                else write(I + i, V[i]);
             }
             break;
 
         case 0x65: // Store successive memory addresses from I at registers V[0] to V[X]
             for (uint16_t i = 0; i <= X; ++i) {
-                if (mem_incr)
-                    V[i] = read(I++); 
-                else
-                    V[i] = read(I + i);
-
+                if (mem_incr) V[i] = read(I++); 
+                else V[i] = read(I + i);
             }
+            break;
+
+        case 0x30: // Set I to a large hexadecimal character based on the value of V[X]
+            I = SUPER_FONT_LOCATION + (V[X] & 0x0F) * 10;
+            break;
+
+        case 0x75: // Save V[0] - V[X] to flag registers
+            for (uint16_t i = 0; i <= X; ++i) 
+                save_data[i] = V[i]; 
+            break;
+
+        case 0x85: // Restore V[0] - V[X] from flag registers
+            for (uint16_t i = 0; i <= X; ++i) 
+                V[i] = save_data[i]; 
             break;
         }
         break;
