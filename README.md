@@ -6,18 +6,18 @@
 3. ~Add SUPERCHIP support~
 
 
-### Games showcase:
-#### 8ceattorney
-<img src="https://github.com/Kaezrr/CHIP-8_Emulator/assets/107052359/bd0e3bc2-438d-4902-a719-2318120dde1a" width=500>
-
+### Some programs showcase:
 #### Breakout
-<img src="https://github.com/Kaezrr/CHIP-8_Emulator/assets/107052359/b8682caf-8cbf-436a-99e3-7212b7ddbd88" width=500>
+<img src="https://github.com/Kaezrr/CHIP-8_Emulator/assets/107052359/dea8e330-2b3a-451b-8797-296c7f74e086" width=500>
 
 #### Glitch Ghost
-<img src="https://github.com/Kaezrr/CHIP-8_Emulator/assets/107052359/a3cb7eb2-3158-4871-8a6b-17ef7334ba71" width=500>
+<img src="https://github.com/Kaezrr/CHIP-8_Emulator/assets/107052359/fe43eabf-42a2-4bde-808b-f0ff72a4875b" width=500>
 
-#### Space Jam
-<img src="https://github.com/Kaezrr/CHIP-8_Emulator/assets/107052359/b74fb719-8823-4f64-9505-89c8c6a5397f" width=500>
+#### Cave Explorer
+<img src="https://github.com/Kaezrr/CHIP-8_Emulator/assets/107052359/b4b2eb39-88f6-478b-a5f9-a140da7b2eeb" width=500>
+
+#### OctoJam 10 Welcome Screen
+<img src="https://github.com/Kaezrr/CHIP-8_Emulator/assets/107052359/dd851091-3117-4aa8-88df-a54bb3616dba" width=500>
 
 ### Resources used:
 [Tobias V. Langhoff's wonderful CHIP-8 instruction set guide](https://tobiasvl.github.io/blog/write-a-chip-8-emulator/)
