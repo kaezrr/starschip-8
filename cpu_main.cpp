@@ -59,9 +59,6 @@ void Chip_8::decode_and_execute() {
             break;
 
         case 0xFD: // Exit the interpreter
-            active = false;
-            break;
-
         case 0x00: // Halt the program 
             stopped = true;
             break;
