@@ -26,44 +26,46 @@ void Chip_8::decode_and_execute() {
 
     switch (byte0) {
     case 0x0:
-        switch (NN) {
-        case 0xE0: // Clear screen
+        switch (NNN) {
+        case 0x0E0: // Clear screen
             for (auto& row : display) std::fill(row.begin(), row.end(), 0);
             for (auto& row : super_display) std::fill(row.begin(), row.end(), 0);
             draw_screen = true;
             break;
 
-        case 0xEE: // Return from a subroutine
+        case 0x0EE: // Return from a subroutine
+            if (stack.empty()) break;
             pc = stack.top();
             stack.pop();
             break;
 
-        case 0xFF: // Enable high resolution mode
+        case 0x0FF: // Enable high resolution mode
             super = true;
             break;
 
-        case 0xFE: // Enable low resolution mode
+        case 0x0FE: // Enable low resolution mode
             super = false;
             break;
 
-        case 0xFB: // Scroll display right by 4 pixels
+        case 0x0FB: // Scroll display right by 4 pixels
             if (super) scroll_right(super_display, SUPER_WIDTH);
             else scroll_right(display, SCREEN_WIDTH);
             draw_screen = true;
             break;
 
-        case 0xFC: // Scroll display left by 4 pixels
+        case 0x0FC: // Scroll display left by 4 pixels
             if (super) scroll_left(super_display, SUPER_WIDTH);
             else scroll_left(display, SCREEN_WIDTH);
             draw_screen = true;
             break;
 
-        case 0xFD: // Exit the interpreter
-        case 0x00: // Halt the program 
+        case 0x0FD: // Exit the interpreter
+        case 0x000: // Halt the program 
             stopped = true;
             break;
 
-        default: // 00CN Scroll display down by N pixels
+        default: // 00CN/00DN Scroll display down/up by N pixels respectively
+            if (X) break;
             if (Y == 0xC) {
                 if (super) scroll_down(super_display, SUPER_HEIGHT, N);
                 else scroll_down(display, SCREEN_HEIGHT, N);
@@ -81,6 +83,7 @@ void Chip_8::decode_and_execute() {
         break;
 
     case 0x2: // Jump to subroutine at NNN
+        if (stack.size() >= 16) break;
         stack.push(pc);
         pc = NNN;
         break;
@@ -223,10 +226,8 @@ void Chip_8::decode_and_execute() {
             sound = (V[X] == 1)? 2 : V[X];
             break;
 
-        case 0x1E: { // Add V[X] to I, sets carry flag
-            uint32_t res = I + V[X];
+        case 0x1E: { // Add V[X] to I
             I += V[X];
-            V[0xF] = res > 0x0FFF;
             break;
         }
 
