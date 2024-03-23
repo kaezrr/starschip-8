@@ -164,7 +164,7 @@ void Chip_8::decode_and_execute() {
 
         case 0xE: { // Set carry flag to the left-most bit and shift V[X] one bit to the left
             if (!shift) V[X] = V[Y];
-            uint8_t bit = V[X] & 0x80;
+            uint8_t bit = V[X] >> 7;
             V[X] <<= 1;
             V[0xF] = bit;
             break;
