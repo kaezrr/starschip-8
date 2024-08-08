@@ -72,7 +72,7 @@ int main(int argc, char* argv[]) {
 
         int ipf = (chip8.super) ? 30 : 12;
 
-        // CPU runs at 720Hz or 1.8MHz w/ SCHIP
+        // CPU runs at 720Hz or 1.8KHz w/ SCHIP
         for (int _ = 0; _ < ipf; ++_) {
             chip8.fetch();
             chip8.decode_and_execute();
